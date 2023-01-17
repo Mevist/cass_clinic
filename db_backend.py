@@ -1,8 +1,24 @@
 from cassandra.cluster import Cluster
+#  ExecutionProfie, EXEC_PROFILE_DEFAULT
+from cassandra.policies import WhiteListRoundRobinPolicy, DowngradingConsistencyRetryPolicy
+from cassandra.query import tuple_factory
+
+
 
 class Database():
         
-    def __init__(self, addresses=['0.0.0.0'], port=9042):
+    def __init__(self, addresses=['127.0.0.1'], port=9042):
+        # self.profile = ExecutionProfile(
+        #     load_balancing_policy=WhiteListRoundRobinPolicy(['127.0.0.1']),
+        #     retry_policy=DowngradingConsistencyRetryPolicy(),
+        #     consistency_level=ConsistencyLevel.LOCAL_QUORUM,
+        #     serial_consistency_level=ConsistencyLevel.LOCAL_SERIAL,
+        #     request_timeout=15,
+        #     row_factory=tuple_factory
+        # )   
+
+        # cluster = Cluster(execution_profiles={EXEC_PROFILE_DEFAULT: profile})
+        # session = cluster.connect()
         self.cluster = Cluster(addresses, port)
         try:
             self.session = self.cluster.connect('clinic', wait_for_all_pools=True)

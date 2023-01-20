@@ -5,12 +5,7 @@ from patient_simulation import Patient
 
 if __name__ == "__main__":
  
-    # try:
     db = Database()
-    # except Exception as e:
-    #     print("ERRRRRRRRRRRRROR")
-    #     print(e)
-    # patient = Patient('9909040', 'Szymi', 'Test', db)
 
     cl_app = App(db)
 

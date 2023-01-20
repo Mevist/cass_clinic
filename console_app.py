@@ -1,18 +1,22 @@
-from db_backend import Database
-import basic_tools
 from datetime import datetime
+from random import sample, choice
+from cassandra.util import uuid_from_time
+
+from db_backend import Database
+
 import os
+import basic_tools
 import patient_simulation
-from random import randrange, sample, choice
-import threading
+import time
+import uuid
 class App:
     
     def __init__(self, database):
-        self.patient_last_name = 'Pies'
+        self.patient_surname = 'Brenner'
         self.ss_num = '9909290'
         self.active = True
         self.db = database
-        self.menu_msg = str()
+        self.menu_msg = f'Logged in as {self.patient_surname}' if self.patient_surname else str()
 
         self.patients_threads = []
         self.threads_active = True
@@ -96,9 +100,9 @@ class App:
             print(f'Couldnt log in as {patient_last_name}. ')
             print(e)
         if patient:
-            self.patient_last_name = patient_last_name
+            self.patient_surname = patient_last_name
             self.ss_num = ss_num
-            self.menu_msg = "You logged in as " + self.patient_last_name
+            self.menu_msg = "You logged in as " + self.patient_surname
         else:
             print(f'Patient {patient_last_name} is not registered in clinic')
 
@@ -125,30 +129,36 @@ class App:
         self.menu_msg = "Visit on " + m_day + " canceled"
 
     def delete_visit(self, doctor_last, m_day):
-        self.db.delete_doctor_visit(doctor_last, m_day, self.ss_num)
-        self.db.delete_visit(self.ss_num, m_day, doctor_last)
+        visit_uuid = self.db.select_visit_timeuuid(self.ss_num, m_day).visit_uuid
+
+        self.db.delete_visits_by_doctor(doctor_last, m_day, visit_uuid)
+        self.db.delete_visits_by_patient(self.ss_num, m_day, visit_uuid)
 
     def update_visit(self):
         pass
 
-    def check_doctor_availability(self, doctor_last, doctor_spec):
-        doctor = self.db.select_doctor(doctor_last, doctor_spec)
+    def check_doctor_availability(self, doctor_last):
+        doctor = self.db.select_doctor(doctor_last)
+
         work_days = basic_tools.doctors_workdays(doctor.avability)
         return (work_days, doctor.work_start, doctor.work_end)
     
     def register_visit_db(self, visit_date, visit_time, doctor_last):
-        self.db.insert_visit(self.patient_last_name, visit_date, visit_time, self.ss_num, doctor_last)
-        row_uuid = self.db.select_visit_timeuuid(self.ss_num, visit_date).visit_uuid
-        visit_flag = self.db.insert_doctor_visit(doctor_last, visit_date, visit_time, row_uuid, self.ss_num, self.patient_last_name)[0].applied
-        return visit_flag
+        generated_timeuuid = uuid_from_time(datetime.now())
+        self.db.insert_visit_by_doctor(doctor_last, visit_date, visit_time, generated_timeuuid, self.ss_num, self.patient_surname)
+        time.sleep(1)
+        # make here select on doctor_last, visit_date, create function to validate if
+        # added visits is the only one at the time, if yes add row to visit_by_patient
+        # else delete the one row from visits_by_doctor
 
     def register_visits(self, ):
         if self.ss_num:
             doctor_last = input('Provide Doctors last name: ')
-            doctor_specialization = input('Provide Doctors specialization: ')
+            # doctor_specialization = input('Provide Doctors specialization: ')
 
-            doctor_hours = self.check_doctor_availability(doctor_last, doctor_specialization)
-            print(f'Doctor is working on {", ".join(f"{day}" for day in doctor_hours[0])} from {doctor_hours[1].time().strftime("%H:%M:%S")} to {doctor_hours[2].time().strftime("%H:%M:%S")}')
+            doctor_hours = self.check_doctor_availability(doctor_last)
+            print(f'Doctor is working on {", ".join(f"{day}" for day in doctor_hours[0])} \
+                from {doctor_hours[1].time().strftime("%H:%M:%S")} to {doctor_hours[2].time().strftime("%H:%M:%S")}')
 
             visit_date = input('Provide date of visit: ')
             visit_time = input('and time: ')
@@ -166,7 +176,7 @@ class App:
 
     def show_visits(self):
         if self.ss_num:
-            visits = self.db.select_visits(self.ss_num)
+            visits = self.db.select_visits_by_patient(self.ss_num)
             for row in visits:
                 for item in row:
                     self.menu_msg += str(item) + " | "

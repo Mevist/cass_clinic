@@ -19,8 +19,6 @@ class Database():
         )   
 
         self.cluster = Cluster(execution_profiles={EXEC_PROFILE_DEFAULT: self.profile})
-        # self.session = cluster.connect()
-        # self.cluster = Cluster(addresses, port)
         try:
             self.session = self.cluster.connect('clinic', wait_for_all_pools=True)
         except Exception as e:
@@ -31,7 +29,7 @@ class Database():
             self.slc_patient_statement = self.session.prepare \
                 ("SELECT * from patient WHERE ss_num=?;")
             self.slc_doctor_statement = self.session.prepare \
-                ("Select * from doctor WHERE doctor_surname=?")
+                ("SELECT * FROM doctor WHERE doctor_surname=?;")
             self.ins_patient_statement = self.session.prepare \
                 ("INSERT INTO patient (first_name, patient_surname, ss_num) \
                     VALUES (?, ?, ?);")
@@ -43,6 +41,8 @@ class Database():
                     VALUES (?, ?, ? ,?, ?, ?);")        
             self.slc_visits_by_patient_statement = self.session.prepare \
                 ("SELECT * FROM visits_by_patient WHERE ss_num=?;")
+            self.slc_visits_by_patient_mday_statement = self.session.prepare \
+                ("SELECT * FROM visits_by_patient WHERE ss_num=? AND m_day=?;")
             self.slc_visits_by_doctor_statement = self.session.prepare \
                 ("SELECT * FROM visits_by_doctor WHERE doctor_surname=? AND m_day=?;")
             self.slc_visit_timeuuid_statement = self.session.prepare \
@@ -59,6 +59,10 @@ class Database():
     
     def select_patient(self, ss_num):
         row = self.session.execute(self.slc_patient_statement,[ss_num]).one()
+        return row
+    
+    def select_count(self, table):
+        row = self.session.execute(f'select COUNT(*) from {table};')
         return row
 
     def select_doctor(self, doctor_surname):
@@ -77,6 +81,23 @@ class Database():
         return self.session.execute(self.ins_visit_by_patient_statement,\
             [doctor_surname, m_day, visit_time, visit_uuid, ss_num, patient_surname])
     
+    def select_visits_by_patient_mday(self, ss_num, m_day):
+        rows = []
+        try:
+            rows = self.session.execute(self.slc_visits_by_patient_mday_statement,\
+                [ss_num, m_day]).one()
+        except Exception as e:
+            print(e)
+        else: return rows
+
+    # def select_visits_by_doctor_mday(self, ss_num, m_day):
+    #     rows = []
+    #     try:
+    #         rows = self.session.execute(self.slc_visits_by_doctor_mday_statement,\
+    #             [ss_num, m_day]).one()
+    #     except Exception as e:
+    #         print(e)
+    #     else: return rows   
 
     def select_visits_by_patient(self, ss_num):
         rows = []
@@ -94,7 +115,7 @@ class Database():
                 [doctor_surname, m_day])
         except Exception as e:
             print(e)
-        else: return rows
+        return rows
     
     def select_doctors_names(self):
         rows = []

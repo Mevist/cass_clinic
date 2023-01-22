@@ -1,8 +1,13 @@
 import threading
 import db_backend as Database
+from cassandra.util import uuid_from_time
+from datetime import timedelta, datetime
+
 import time
 import random
 import basic_tools
+
+
 class Patient(threading.Thread):
     
     def __init__(self, ss_num, first_name, last_name, database) -> None:
@@ -13,13 +18,14 @@ class Patient(threading.Thread):
         self.db = database
         self.thread_stop = False
         self.actions = ["Register_visit", "Sel_visits"]
-        # self.patient_thread = threading.Thread(target=self.patient_start)
         self.doctors_names = {}
+        self.visit_minutes = timedelta(minutes=30)
 
-        # self.patient_start()
+        self.succesful_operations = 0
+        self.failed_operations = 0
 
     def register_patient(self):
-        self.db.insert_patient(self.first_name, self.patient_last_name, self.ss_num)
+        self.db.insert_patient(self.first_name, self.last_name, self.ss_num)
     
 
     def testing_func(self):
@@ -29,30 +35,34 @@ class Patient(threading.Thread):
 
     def register_patient_visit(self):
         self.doctors_names = basic_tools.select_doctors_names(self.db)
+        # print(self.doctors_names)
+        doctor_name = random.choice(self.doctors_names)
+        # print(doctor_name)
+        doctor_data = self.db.select_doctor(doctor_name)
 
-        doctor_name, doctor_spec = random.choice(self.doctors_names)
-        doctor_data = self.db.select_doctor(doctor_name, doctor_spec)
-
-        doctor_work_start = doctor_data.work_start.time().strftime("%H:%M:%S")
-        doctor_work_end = doctor_data.work_end.time().strftime("%H:%M:%S")
+        # doctor_work_start = doctor_data.work_start.time().strftime("%H:%M:%S")
+        # doctor_work_end = doctor_data.work_end.time().strftime("%H:%M:%S")
 
         
         while True:
-            visit_date = basic_tools.random_date()
-            if visit_date.strftime('%A') in list(doctor_data.avability):
+            visit_date = basic_tools.random_date().strftime("%Y-%m-%d")
+            if basic_tools.check_date_correctnes(visit_date, doctor_data.avability):
                 break
+
+        visits_times = self.db.select_visits_by_doctor(doctor_name, visit_date)
 
         while True:
-            visit_time = basic_tools.choose_visit_time(doctor_work_start, doctor_work_end)
-            visit_flag = self.register_visit_db(visit_date, visit_time, doctor_name)
-            if visit_flag:
-                break
+            visit_time = random.choice(basic_tools.get_visit_hours(doctor_data.work_start, doctor_data.work_end, visits_times, self.visit_minutes))
 
-        # print(visit_date.strftime("%Y-%m-%d"), visit_time.strftime("%H:%M:%S"))
+            time_flag, taken_hours = basic_tools.check_time_correctness(visit_time, self.visit_minutes, visits_times, (doctor_data.work_start, doctor_data.work_end))
+            if time_flag:
+                register_flag = self.register_visit_db(visit_date, visit_time, doctor_name)
+                if register_flag:
+                    break
 
 
     def run(self):
-        # self.patient_thread.start()
+        self.register_patient()
         while True:
             if self.thread_stop:
                 break
@@ -62,21 +72,37 @@ class Patient(threading.Thread):
                 self.register_patient_visit()
             elif picked_action == "Sel_visit":
                 self.show_visits()
-            # print(f'Running: {self.ss_num}')
-            time.sleep(5)
+            time.sleep(0.1)
     
     def patient_stop(self):
         self.thread_stop = True
         print(f'Thread with ss_num and last name {self.ss_num}, {self.last_name} shutting down')
-        time.sleep(1)
-        # self.patient_thread.join()
+        # time.sleep(0.01)
+
+
+
+    def check_visit_times_by_doctor(self, visit_date, visit_time, doctor_last):
+        doctor_mday_list = self.db.select_visits_by_doctor(doctor_last, visit_date)
+        for row in doctor_mday_list:
+            # print(row, row.visit_time.time().strftime('%H:%M:%S'), visit_time)
+            if row.visit_time.time().strftime('%H:%M:%S') == visit_time and row.ss_num != self.ss_num:
+                return False
+            return True
 
     def register_visit_db(self, visit_date, visit_time, doctor_last):
-        self.db.insert_visit(self.last_name, visit_date, visit_time, self.ss_num, doctor_last)
-        row_uuid = self.db.select_visit_timeuuid(self.ss_num, visit_date).visit_uuid
-        visit_flag = self.db.insert_doctor_visit(doctor_last, visit_date, visit_time, row_uuid, self.ss_num, self.last_name)
-        return visit_flag
+        generated_timeuuid = uuid_from_time(datetime.now())
+        self.db.insert_visit_by_doctor(doctor_last, visit_date, visit_time, generated_timeuuid, self.ss_num, self.last_name)
+        time.sleep(0.5)
+        if self.check_visit_times_by_doctor(visit_date, visit_time, doctor_last):
+            self.db.insert_visit_by_patient(doctor_last, visit_date, visit_time, generated_timeuuid, self.ss_num, self.last_name)
+            self.succesful_operations += 1
+            return True
+        else:
+            self.db.delete_visits_by_doctor(doctor_last, visit_date, generated_timeuuid)
+            self.failed_operations += 1
+            return False
 
     def show_visits(self):
         if self.ss_num:
             visits = self.db.select_visits(self.ss_num)
+            self.succesful_operations += 1

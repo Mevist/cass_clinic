@@ -21,9 +21,10 @@ CREATE TABLE visits_by_doctor (
   ss_num text,
   patient_surname text,
   description text,
-  PRIMARY KEY ((doctor_surname, m_day), visit_uuid)
+  PRIMARY KEY ((doctor_surname, m_day), visit_uuid, ss_num)
 );
 CREATE INDEX ON visits_by_doctor (doctor_surname);
+CREATE INDEX ON visits_by_doctor (ss_num);
 
 CREATE TABLE patient (
   first_name text,

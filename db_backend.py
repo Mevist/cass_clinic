@@ -10,7 +10,7 @@ class Database():
         
     def __init__(self, addresses=['127.0.0.1'], port=9042):
         self.profile = ExecutionProfile(
-            consistency_level=ConsistencyLevel.QUORUM,
+            consistency_level=ConsistencyLevel.ONE,
             # request_timeout=30,
             row_factory=named_tuple_factory
         )   

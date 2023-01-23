@@ -20,7 +20,7 @@ class App:
         self.menu_msg = f'Logged in as {self.patient_surname}' if self.patient_surname else str()
 
         self.patients_threads = []
-        self.threads_num = 1000
+        self.threads_num = 250
         self.threads_active = True
         self.surnames_list = basic_tools.read_names('surnames')
         self.names_list = basic_tools.read_names('names')
@@ -43,12 +43,10 @@ class App:
         print(f'5 - Delete visit')
         print(f'6 - Start stress test')
         print(f'7 - Stop stress test')
-        print(f'8 - Check threads')
-        print(f'T - TESTING FUNCTIONS')
         print(f'Q - Exit')
 
     def execute(self, action):
-        # self.clear_messages()
+        self.clear_messages()
         self.menu_msg = str()
         if action.isalpha():
             action = action.upper()
@@ -68,16 +66,8 @@ class App:
             self.del_visit_menu()
         elif action == '6':
             self.start_stress_test()
-            # self.patient_main_thread.start()
         elif action == '7':
             self.stop_stress_test()
-        elif action == '8':
-            self.check_threads()
-        elif action == 'T':
-            doctor_hours = self.check_doctor_availability('Kowalski')
-            print(doctor_hours)
-            visits_times = self.db.select_visits_by_doctor('Kowalski', '2023-01-12')
-            self.testing_func(doctor_hours[1], doctor_hours[2], visits_times, timedelta(minutes=30))
         elif action == 'Q':
             self.stop_stress_test()
             self.active = False
@@ -134,8 +124,6 @@ class App:
         first_name = input('Provide your first name: ')
         patient_last_name = input('Provide your last name: ')
         ss_num = input('Provide your Social Security number: ')
-
-        # try except blocks probably will be removed
         try:
             self.db.insert_patient(first_name, patient_last_name, ss_num)
             self.menu_msg = "Patient " + first_name + " " + patient_last_name + " registered"
@@ -184,9 +172,6 @@ class App:
         else:
             self.db.delete_visits_by_doctor(doctor_last, visit_date, generated_timeuuid)
             return False
-        # make here select on doctor_last, visit_date, create function to validate if
-        # added visits is the only one at the time, if yes add row to visit_by_patient
-        # else delete the one row from visits_by_doctor
 
     def register_visits(self, ):
         doctor_last = input('Provide Doctors last name: ')
@@ -197,7 +182,7 @@ class App:
         decision = str()
 
         while True:
-            visit_date = input('Provide date of visit: ')
+            visit_date = input('Provide date of visit(Y-M-D): ')
             patient_mday = self.db.select_visits_by_patient_mday(self.ss_num, visit_date)
             if patient_mday:
                 print(f'You already have visit this day at: {patient_mday.visit_time}')
@@ -212,8 +197,9 @@ class App:
                     self.delete_visit(doctor_last, visit_date)
             if decision == 'N':
                 break
+
             if basic_tools.check_date_correctnes(visit_date, doctor_hours[3]):
-                visit_time = input('and time: ')
+                visit_time = input('and time(H:M:S): ')
                 visits_times = self.db.select_visits_by_doctor(doctor_last, visit_date)
                 print(type(visits_times), visits_times)
                 while True:

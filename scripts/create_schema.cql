@@ -1,8 +1,14 @@
+-- Tables created to fulfill there queries:
+-- doctors data, when they work how long etc
+-- patient basic data
+-- visits scheduled to specific doctor at this day
+-- visits scheduled by this specific patient
+-- visits_by_patient and visits_by_doctor should have same size at the end
+
 CREATE KEYSPACE IF NOT EXISTS clinic
-  WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };
+  WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 2 };
 
 USE clinic;
-
 
 CREATE TABLE doctor (
   doctor_surname text ,
@@ -25,6 +31,7 @@ CREATE TABLE visits_by_doctor (
 );
 CREATE INDEX ON visits_by_doctor (doctor_surname);
 CREATE INDEX ON visits_by_doctor (ss_num);
+-- Indexes created for debugging purposes
 
 CREATE TABLE patient (
   first_name text,
@@ -46,6 +53,3 @@ CREATE TABLE visits_by_patient (
   PRIMARY KEY (ss_num, m_day, visit_uuid)
   )
   WITH CLUSTERING ORDER BY (m_day DESC);
-
-
---   CREATE INDEX ON visits (ss_num);

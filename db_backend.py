@@ -10,11 +10,8 @@ class Database():
         
     def __init__(self, addresses=['127.0.0.1'], port=9042):
         self.profile = ExecutionProfile(
-            load_balancing_policy=WhiteListRoundRobinPolicy(['127.0.0.1']),
-            retry_policy=DowngradingConsistencyRetryPolicy(),
-            consistency_level=ConsistencyLevel.LOCAL_QUORUM,
-            serial_consistency_level=ConsistencyLevel.LOCAL_SERIAL,
-            request_timeout=15,
+            consistency_level=ConsistencyLevel.QUORUM,
+            # request_timeout=30,
             row_factory=named_tuple_factory
         )   
 
@@ -89,15 +86,6 @@ class Database():
         except Exception as e:
             print(e)
         else: return rows
-
-    # def select_visits_by_doctor_mday(self, ss_num, m_day):
-    #     rows = []
-    #     try:
-    #         rows = self.session.execute(self.slc_visits_by_doctor_mday_statement,\
-    #             [ss_num, m_day]).one()
-    #     except Exception as e:
-    #         print(e)
-    #     else: return rows   
 
     def select_visits_by_patient(self, ss_num):
         rows = []

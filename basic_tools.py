@@ -45,7 +45,6 @@ def check_time_correctness(patient_time, visit_minutes, visits_times, working_ti
     if list_times[index - 1] <= result_start.time() and list_times[index + 1] >= result_end.time():
         return True
     else: return False, list_times
-    # print(result_start.time(), result_end.time(), patient_timestamp)
 
 
 def random_ssnum(ss_nums_list : list) -> str:
@@ -58,12 +57,6 @@ def read_names(filename):
         for line in data_file:
             surnames.extend(line.strip().split(',')) 
     return surnames
-
-def rand_datetime(start, end):
-
-    return datetime.fromtimestamp(randrange(
-        round(start.timestamp()), round(end.timestamp())
-    ))
 
 def get_visit_hours(start, end, db_visits, visit_minutes):
     db_visits = [visit.visit_time.time() for visit in db_visits]
@@ -78,18 +71,24 @@ def get_visit_hours(start, end, db_visits, visit_minutes):
     visit_hours = [visit.strftime('%H:%M:%S') for visit in visit_hours if visit not in db_visits]
     return visit_hours
 
-def choose_visit_time(start, end):
-    start = time.fromisoformat(start)
-    end = time.fromisoformat(end)
-    return rand_datetime(
-        datetime.combine(dt0 := datetime.fromtimestamp(0), start),
-        datetime.combine(
-            dt0 if start < end else dt0 + timedelta(days=1),
-            end
-        )
-    ).time()
-
 def random_date():
     start_date = date.today()
     end_date = start_date + search_range
     return start_date + (end_date - start_date) * random()
+
+# def rand_datetime(start, end):
+
+#     return datetime.fromtimestamp(randrange(
+#         round(start.timestamp()), round(end.timestamp())
+#     ))
+
+# def choose_visit_time(start, end):
+#     start = time.fromisoformat(start)
+#     end = time.fromisoformat(end)
+#     return rand_datetime(
+#         datetime.combine(dt0 := datetime.fromtimestamp(0), start),
+#         datetime.combine(
+#             dt0 if start < end else dt0 + timedelta(days=1),
+#             end
+#         )
+#     ).time()

@@ -1,4 +1,4 @@
-#cass_clinic
+# cass_clinic
 System rejestracji pacjentów do przychodni używając Cassandry.
 # Symulacja przychodni 
 Projekt symuluje rejestracje wizyt pacjentów u lekarzy w pewnej przychodni z wykorzystaniem bazy danych Cassandra. Pacjent może zarejestrować się w przychodni, zarejestrować wizytę do danego lekarza, w danym dniu.
